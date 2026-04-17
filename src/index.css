@@ -1,0 +1,227 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap');
+@import "tailwindcss";
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Ubuntu', sans-serif;
+  background: #f4f6f9;
+  color: #1a2e4a;
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(.95) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a4060; border-radius: 8px; }
+
+/* Remove default button font inheritance issue */
+button, input, textarea, select {
+  font-family: 'Ubuntu', sans-serif;
+}
+
+/* NavLink active state handled inline via style prop */
+a { color: inherit; }
+
+.layout-content {
+  margin-left: 240px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topbar-header {
+  padding: 14px 32px;
+}
+
+@media (max-width: 767px) {
+  .layout-content {
+    margin-left: 0;
+  }
+  .topbar-header {
+    padding: 14px 16px 14px 60px; /* 60px left clears the hamburger button */
+  }
+}
+
+@media (max-width: 767px) {
+  .layout-content main {
+    padding: 20px 16px;
+  }
+}
+
+/* ── Login / Register page ── */
+.login-page {
+  background: white;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 448px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 0;
+}
+
+.login-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.login-subtitle {
+  color: #94a3b8;
+  font-size: 1rem;
+  margin-bottom: 32px;
+  margin-top: 4px;
+}
+
+.login-server-error {
+  width: 100%;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 0.875rem;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.login-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #1a2e4a;
+  font-family: 'Ubuntu', sans-serif;
+  outline: none;
+  transition: border-color 0.15s;
+  margin-bottom: 14px;
+}
+
+.login-input.has-error {
+  border-color: #ef4444;
+  margin-bottom: 4px;
+}
+
+.login-input:focus {
+  border-color: #b5a06e;
+}
+
+.login-field-error {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-bottom: 14px;
+}
+
+.login-password-wrap {
+  position: relative;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.login-password-wrap .login-input {
+  padding-right: 44px;
+  margin-bottom: 0;
+}
+
+.login-eye-btn {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+
+.login-eye-btn:hover {
+  color: #4b5563;
+}
+
+.login-forgot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+  margin-bottom: 24px;
+}
+
+.login-forgot a {
+  font-size: 0.875rem;
+  color: #1a2e4a;
+  text-decoration: none;
+}
+
+.login-forgot a:hover {
+  text-decoration: underline;
+}
+
+.login-submit {
+  width: 100%;
+  padding: 16px;
+  background: #b5a06e;
+  color: white;
+  font-size: 1rem;
+  font-weight: 500;
+  font-family: 'Ubuntu', sans-serif;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.login-submit:hover {
+  background: #9e8a5c;
+}
+
+.login-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.login-footer {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.login-footer a {
+  font-weight: 500;
+  color: #1a2e4a;
+  text-decoration: none;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
+}
