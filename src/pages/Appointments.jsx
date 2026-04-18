@@ -1004,7 +1004,7 @@ export default function Appointments() {
       await api.post("/appointments", {
         date: dateStr,
         time: timeStr,
-        reason: notes || null,
+        reason: notes || undefined,
         practitioner: spec.name,
       });
       show(`Booked with ${spec.name} on ${date} at ${time}!`);

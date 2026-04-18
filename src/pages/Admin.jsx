@@ -30,152 +30,41 @@ function Pill({ type, children }) {
   );
 }
 
-const EMPTY_FORM = { title: "", description: "", status: "draft" };
+const formatDate = (dateStr) => {
+  if (!dateStr) return "—";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
 
-export default function Admin() {
-  const navigate = useNavigate();
-  const { show, ToastUI } = useToast();
-  const [activeSection, setActiveSection] = useState("courses");
-  const [courses, setCourses] = useState([]);
-  const [appointments, setAppointments] = useState([]);
-  const [loadingData, setLoadingData] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [formErrors, setFormErrors] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+const formatTime = (timeStr) => {
+  if (!timeStr) return "—";
+  const [h, m] = timeStr.split(":");
+  const date = new Date();
+  date.setHours(+h, +m);
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
 
-  /* ── lock body scroll when mobile sidebar is open ── */
-  useEffect(() => {
-    document.body.style.overflow = sidebarOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [sidebarOpen]);
-
-  /* ── close sidebar on nav ── */
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [activeSection]);
-
-  /* ── guard: admin only ── */
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if (user?.role !== "admin") navigate("/dashboard");
-  }, []);
-
-  /* ── fetch data ── */
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [coursesRes, apptRes] = await Promise.all([
-          api.get("/courses/admin"),
-          api.get("/appointments/admin"),
-        ]);
-        setCourses(
-          (coursesRes.data.courses || []).map((c) => ({
-            id: c.id,
-            title: c.title,
-            created_by: c.created_by || "—",
-            enrolled: c.enrolled ?? 0,
-            created_at: c.created_at
-              ? new Date(c.created_at).toLocaleDateString("en-GB", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })
-              : "—",
-          }))
-        );
-        setAppointments(apptRes.data.appointments || []);
-      } catch {
-        show("Failed to load data.", false);
-      } finally {
-        setLoadingData(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
-  };
-
-  const validate = () => {
-    const errs = {};
-    if (!form.title.trim()) errs.title = "Title is required.";
-    return errs;
-  };
-
-  const handleSave = async (forceStatus) => {
-    const errs = validate();
-    if (Object.keys(errs).length) {
-      setFormErrors(errs);
-      return;
-    }
-    setSaving(true);
-    const status = forceStatus || form.status;
-    try {
-      const res = await api.post("/courses", {
-        title: form.title.trim(),
-        description: form.description.trim(),
-        status,
-      });
-      const created = res.data.course || res.data;
-      const newCourse = {
-        id: created.id || Date.now(),
-        title: form.title.trim(),
-        created_by: created.created_by || "—",
-        enrolled: 0,
-        created_at: created.created_at
-          ? new Date(created.created_at).toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
-          : new Date().toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            }),
-      };
-      setCourses((prev) => [newCourse, ...prev]);
-      setShowModal(false);
-      setForm(EMPTY_FORM);
-      show(
-        status === "published"
-          ? `🎉 "${newCourse.title}" published!`
-          : `"${newCourse.title}" saved as draft.`
-      );
-    } catch (err) {
-      show(err.response?.data?.error || "Could not save course.", false);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const deleteCourse = async (id) => {
-    const c = courses.find((c) => c.id === id);
-    try {
-      await api.delete(`/courses/${id}`);
-      setCourses((prev) => prev.filter((c) => c.id !== id));
-      show(`"${c?.title}" deleted.`);
-    } catch (err) {
-      show(err.response?.data?.error || "Could not delete course.", false);
-    }
-  };
-
-  /* ── reusable form field ── */
-  const Field = ({
-    label,
-    name,
-    type = "text",
-    options,
-    placeholder,
-    required,
-  }) => (
+function Field({
+  label,
+  name,
+  type = "text",
+  placeholder,
+  required,
+  form,
+  formErrors,
+  setForm,
+  setFormErrors,
+}) {
+  return (
     <div>
       <label
         style={{
@@ -191,33 +80,7 @@ export default function Admin() {
         {label}
         {required && " *"}
       </label>
-      {options ? (
-        <select
-          value={form[name]}
-          onChange={(e) => {
-            setForm((f) => ({ ...f, [name]: e.target.value }));
-            if (formErrors[name]) setFormErrors((f) => ({ ...f, [name]: "" }));
-          }}
-          style={{
-            width: "100%",
-            padding: "10px 14px",
-            border: `1px solid ${formErrors[name] ? "#ef4444" : "#e2e8f0"}`,
-            borderRadius: 8,
-            fontSize: 13,
-            fontFamily: "inherit",
-            color: "#1a2e4a",
-            outline: "none",
-            background: "#fff",
-          }}
-        >
-          <option value="">Select…</option>
-          {options.map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
-          ))}
-        </select>
-      ) : type === "textarea" ? (
+      {type === "textarea" ? (
         <textarea
           value={form[name]}
           onChange={(e) => setForm((f) => ({ ...f, [name]: e.target.value }))}
@@ -272,8 +135,135 @@ export default function Admin() {
       )}
     </div>
   );
+}
 
-  /* ── sidebar (shared by desktop + mobile overlay) ── */
+const EMPTY_FORM = { title: "", description: "" };
+
+export default function Admin() {
+  const navigate = useNavigate();
+  const { show, ToastUI } = useToast();
+  const [activeSection, setActiveSection] = useState("courses");
+  const [courses, setCourses] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [formErrors, setFormErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    document.body.style.overflow = sidebarOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [activeSection]);
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (user?.role !== "admin") navigate("/dashboard");
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [coursesRes, apptRes] = await Promise.all([
+          api.get("/courses/admin"),
+          api.get("/appointments/admin"),
+        ]);
+        setCourses(
+          (coursesRes.data.courses || []).map((c) => ({
+            id: c.id,
+            title: c.title,
+            created_by: "Admin",
+            enrolled: c.enrolled ?? 0,
+            created_at: c.created_at
+              ? new Date(c.created_at).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "—",
+          }))
+        );
+        setAppointments(apptRes.data.appointments || []);
+      } catch {
+        show("Failed to load data.", false);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
+  const validate = () => {
+    const errs = {};
+    if (!form.title.trim()) errs.title = "Title is required.";
+    return errs;
+  };
+
+  const handleSave = async () => {
+    const errs = validate();
+    if (Object.keys(errs).length) {
+      setFormErrors(errs);
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await api.post("/courses", {
+        title: form.title.trim(),
+        description: form.description.trim(),
+      });
+      const created = res.data.course || res.data;
+      const newCourse = {
+        id: created.id || Date.now(),
+        title: form.title.trim(),
+        created_by: created.created_by || "—",
+        enrolled: 0,
+        created_at: created.created_at
+          ? new Date(created.created_at).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : new Date().toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            }),
+      };
+      setCourses((prev) => [newCourse, ...prev]);
+      setShowModal(false);
+      setForm(EMPTY_FORM);
+      show(`🎉 "${newCourse.title}" created successfully!`);
+    } catch (err) {
+      show(err.response?.data?.error || "Could not create course.", false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteCourse = async (id) => {
+    const c = courses.find((c) => c.id === id);
+    try {
+      await api.delete(`/courses/${id}`);
+      setCourses((prev) => prev.filter((c) => c.id !== id));
+      show(`"${c?.title}" deleted.`);
+    } catch (err) {
+      show(err.response?.data?.error || "Could not delete course.", false);
+    }
+  };
+
   const sidebarContent = (
     <aside
       style={{
@@ -285,7 +275,6 @@ export default function Admin() {
         height: "100%",
       }}
     >
-      {/* Logo */}
       <div
         style={{
           display: "flex",
@@ -324,7 +313,6 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Nav */}
       <nav
         style={{
           display: "flex",
@@ -363,7 +351,6 @@ export default function Admin() {
         ))}
       </nav>
 
-      {/* Logout */}
       <div style={{ margin: "0 12px 16px" }}>
         <div
           onClick={handleLogout}
@@ -418,7 +405,6 @@ export default function Admin() {
     </aside>
   );
 
-  /* ══════════════════════════ RENDER ══════════════════════════ */
   return (
     <div
       style={{
@@ -428,11 +414,8 @@ export default function Admin() {
       }}
     >
       <style>{`
-        /* ── keyframes ── */
         @keyframes fadeUp  { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
         @keyframes modalIn { from{opacity:0;transform:scale(.95) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
-
-        /* ── mobile-first base ── */
         .adm-sidebar-desktop { display:none; }
         .adm-hamburger        { display:flex; }
         .adm-layout           { margin-left:0; width:100%; }
@@ -450,13 +433,9 @@ export default function Admin() {
         .adm-table            { min-width:480px; }
         .adm-appt-table       { min-width:520px; }
         th, td                { white-space:nowrap; }
-
-        /* ── sm: 480px ── */
         @media(min-width:480px){
-          .adm-stats           { grid-template-columns:repeat(2,1fr); }
+          .adm-stats { grid-template-columns:repeat(2,1fr); }
         }
-
-        /* ── md: 768px ── */
         @media(min-width:768px){
           .adm-sidebar-desktop { display:block; position:fixed; top:0; left:0; bottom:0; z-index:40; }
           .adm-hamburger        { display:none !important; }
@@ -474,10 +453,8 @@ export default function Admin() {
         }
       `}</style>
 
-      {/* ── Desktop sidebar (fixed) ── */}
       <div className="adm-sidebar-desktop">{sidebarContent}</div>
 
-      {/* ── Mobile overlay sidebar ── */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
@@ -493,12 +470,10 @@ export default function Admin() {
         </div>
       )}
 
-      {/* ── Main area ── */}
       <div
         className="adm-layout"
         style={{ flex: 1, display: "flex", flexDirection: "column" }}
       >
-        {/* ─ Header ─ */}
         <header
           className="adm-header"
           style={{
@@ -513,7 +488,6 @@ export default function Admin() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {/* Hamburger */}
             {!sidebarOpen && (
               <button
                 className="adm-hamburger"
@@ -569,7 +543,6 @@ export default function Admin() {
             </div>
           </div>
 
-          {/* New Course button */}
           <button
             onClick={() => {
               setForm(EMPTY_FORM);
@@ -597,16 +570,10 @@ export default function Admin() {
           </button>
         </header>
 
-        {/* ─ Main content ─ */}
         <main className="adm-main" style={{ flex: 1, background: "#f4f6f9" }}>
-          {/* Stats cards */}
           <div className="adm-stats">
             {[
               { label: "Total Courses", value: courses.length },
-              {
-                label: "Published",
-                value: courses.filter((c) => c.status === "published").length,
-              },
               { label: "Appointments", value: appointments.length },
             ].map(({ label, value }) => (
               <div
@@ -645,7 +612,6 @@ export default function Admin() {
             ))}
           </div>
 
-          {/* Section tabs */}
           <div
             style={{
               display: "flex",
@@ -682,14 +648,12 @@ export default function Admin() {
             ))}
           </div>
 
-          {/* ── Courses table ── */}
           {activeSection === "courses" && (
             <div
               style={{
                 background: "#fff",
                 borderRadius: 12,
                 border: "1px solid #e9edf2",
-                overflow: "hidden",
               }}
             >
               <div className="adm-table-wrap">
@@ -837,14 +801,12 @@ export default function Admin() {
             </div>
           )}
 
-          {/* ── Appointments table ── */}
           {activeSection === "appointments" && (
             <div
               style={{
                 background: "#fff",
                 borderRadius: 12,
                 border: "1px solid #e9edf2",
-                overflow: "hidden",
               }}
             >
               <div className="adm-table-wrap">
@@ -942,7 +904,7 @@ export default function Admin() {
                               color: "#64748b",
                             }}
                           >
-                            {r.date} · {r.time}
+                            {formatDate(r.date)} · {formatTime(r.time)}
                           </td>
                           <td
                             style={{
@@ -983,7 +945,6 @@ export default function Admin() {
         </main>
       </div>
 
-      {/* ══ Create Course Modal ══ */}
       {showModal && (
         <div
           onClick={(e) => {
@@ -1011,7 +972,6 @@ export default function Admin() {
               animation: "modalIn .3s ease",
             }}
           >
-            {/* Modal header */}
             <div
               style={{
                 display: "flex",
@@ -1056,28 +1016,29 @@ export default function Admin() {
               </button>
             </div>
 
-            {/* Fields */}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <Field
                 label="Course Title"
                 name="title"
                 placeholder="e.g. Advanced JavaScript Patterns"
                 required
+                form={form}
+                formErrors={formErrors}
+                setForm={setForm}
+                setFormErrors={setFormErrors}
               />
               <Field
                 label="Description"
                 name="description"
                 type="textarea"
                 placeholder="What will students learn?"
-              />
-              <Field
-                label="Status"
-                name="status"
-                options={["draft", "published"]}
+                form={form}
+                formErrors={formErrors}
+                setForm={setForm}
+                setFormErrors={setFormErrors}
               />
             </div>
 
-            {/* Actions */}
             <div
               style={{
                 display: "flex",
@@ -1102,29 +1063,10 @@ export default function Admin() {
                   fontFamily: "inherit",
                 }}
               >
-                Discard
+                Cancel
               </button>
               <button
-                onClick={() => handleSave("draft")}
-                disabled={saving}
-                style={{
-                  flex: 1,
-                  minWidth: 80,
-                  padding: 11,
-                  border: "1px solid #1a2e4a",
-                  borderRadius: 9,
-                  background: "#fff",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: "#1a2e4a",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                Save Draft
-              </button>
-              <button
-                onClick={() => handleSave("published")}
+                onClick={handleSave}
                 disabled={saving}
                 style={{
                   flex: 2,
@@ -1140,7 +1082,7 @@ export default function Admin() {
                   fontFamily: "inherit",
                 }}
               >
-                {saving ? "Saving…" : "Publish Course →"}
+                {saving ? "Saving…" : "Create Course →"}
               </button>
             </div>
           </div>
