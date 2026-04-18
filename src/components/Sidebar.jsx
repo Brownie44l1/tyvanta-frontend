@@ -137,11 +137,11 @@ export default function Sidebar({ menuOpen, onClose }) {
     <aside
       style={{
         width: 240,
-        minHeight: "100vh",
+        height: "100vh",
         background: "#1a2e4a",
         display: "flex",
         flexDirection: "column",
-        height: "100%",
+        overflow: "hidden",
       }}
     >
       <div
@@ -176,6 +176,7 @@ export default function Sidebar({ menuOpen, onClose }) {
           gap: 4,
           padding: "16px 12px",
           flex: 1,
+          overflowY: "auto",
         }}
       >
         {NAV_ITEMS.map((item) => (
